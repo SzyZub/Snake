@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include <vector>
 #include <time.h>
+#include <iostream>
 
 #define SCREENW 1280
 #define SCREENH 960
@@ -9,7 +10,8 @@
 
 typedef enum enScene {
     EMenu = 0,
-    EPlay
+    EPlay,
+    EOver
 } enScene;
 
 typedef enum enObj {
@@ -22,8 +24,8 @@ typedef enum enObj {
 
 class SnakeCell {
 public:
-    int posY, posX, movY, movX;
-    SnakeCell(int y, int x) : posY(y), posX(x) {
+    int posY, posX, movY, movX, wait;
+    SnakeCell(int y, int x, int w) : posY(y), posX(x), wait(w) {
         movY = 0;
         movX = 0;
     }
@@ -32,8 +34,10 @@ public:
         movX = x;
     }
     void _changePos() {
-        posY += movY;
-        posX += movX;
+        if (!wait) {
+            posY += movY;
+            posX += movX;
+        }
     }
 };
 
@@ -41,29 +45,40 @@ class Snake {
 public:
     std::vector <SnakeCell> pl;
     Snake() {
-        SnakeCell temp(11, 15);
+        SnakeCell temp(11, 15, pl.size());
         pl.push_back(temp);
     }
     void _setHeadMov() {
+        for (int i = pl.size() - 1; i > 0; i--) {
+            pl[i].movX = pl[i - 1].movX;
+            pl[i].movY = pl[i - 1].movY;
+        }
         switch (GetKeyPressed()) {
         case KEY_LEFT:
-            pl[0]._setMov(0, -1);
+            if (pl[0].movX != 1) pl[0]._setMov(0, -1);
             break;
         case KEY_RIGHT:
-            pl[0]._setMov(0, 1);
+            if (pl[0].movX != -1) pl[0]._setMov(0, 1);
             break;
         case KEY_UP:
-            pl[0]._setMov(-1, 0);
+            if (pl[0].movY != 1) pl[0]._setMov(-1, 0);
             break;
         case KEY_DOWN:
-            pl[0]._setMov(1, 0);
+            if (pl[0].movY != -1) pl[0]._setMov(1, 0);
             break;
         }
     }
     void _movSnake() {
         for (int i = 0; i < pl.size(); i++) {
             pl[i]._changePos();
+            if (pl[i].wait != 0) {
+                    pl[i].wait--;
+            }
         }
+    }
+    void _addCell(int y, int x) {
+        SnakeCell temp(y, x, pl.size());
+        pl.push_back(temp);
     }
 };
 
@@ -71,11 +86,14 @@ class Fruit {
 public:
     int posY, posX;
     Fruit() {
-        _randPos();
+        posY = rand() % 10 + 1;
+        posX = rand() % 14 + 1;
     }
-    void _randPos() {
-        posY = rand() % 22 + 1;
-        posX = rand() % 31 + 1;
+    void _randPos(enObj playSpace[24][32]) {
+        do {
+            posY = rand() % 22 + 1;
+            posX = rand() % 30 + 1;
+        } while (playSpace[posY][posX] != ENone);
     }
 };
 
@@ -117,6 +135,9 @@ public:
             case EPlay:
                 _play();
                 break;
+            case EOver:
+                _over();
+                break;
             }
             EndDrawing();
         }
@@ -132,12 +153,12 @@ public:
         }
     }
     void _play() {
+        snake._setHeadMov();
         if (_checkCol()) {
-            flag = EMenu;
+            flag = EOver;
             return;
         }
         _playSpaceUpdt();
-        snake._setHeadMov();
         snake._movSnake();
         for (int i = 0; i < 24; i++) {
             for (int j = 0; j < 32; j++) {
@@ -166,17 +187,28 @@ public:
                 playSpace[i][j] = ENone;
             }
         }
-        playSpace[fruit.posY][fruit.posX] = EFruit;
         playSpace[snake.pl[0].posY][snake.pl[0].posX] = EPlayerHead;
         for (int i = 1; i < snake.pl.size(); i++) {
             playSpace[snake.pl[i].posY][snake.pl[i].posX] = EPlayer;
         }
+        playSpace[fruit.posY][fruit.posX] = EFruit;
     }
     bool _checkCol() {
         int x = snake.pl[0].posX;
         int y = snake.pl[0].posY;
-        if (playSpace[y][x] == EWall) return true;
+        if (playSpace[y][x] == EFruit) {
+            snake._addCell(fruit.posY, fruit.posX);
+            fruit._randPos(playSpace);
+        }
+        if (playSpace[y][x] == EWall || playSpace[y][x] == EPlayer) return true;
         return false;
+    }
+    void _over() {
+        DrawText("Your score is:", (SCREENW - MeasureText("Your score is:", FBIGSIZE)) / 2, SCREENH / 2 - FBIGSIZE, FBIGSIZE, WHITE);
+        DrawText(TextFormat("%d", snake.pl.size() - 1), (SCREENW - MeasureText(TextFormat("%d", snake.pl.size() - 1), FBIGSIZE)) / 2, SCREENH / 2, FBIGSIZE, WHITE);
+        if (GetKeyPressed() == KEY_SPACE) {
+            flag = EMenu;
+        }
     }
 };
 
