@@ -17,7 +17,6 @@ typedef enum enScene {
 typedef enum enObj {
     ENone = 0,
     EWall,
-    EPlayerHead,
     EPlayer,
     EFruit
 } enObj;
@@ -25,9 +24,11 @@ typedef enum enObj {
 class SnakeCell {
 public:
     int posY, posX, movY, movX, wait;
+    float rotation;
     SnakeCell(int y, int x, int w) : posY(y), posX(x), wait(w) {
         movY = 0;
-        movX = 0;
+        movX = 1;
+        rotation = 0;
     }
     void _setMov(int y, int x) {
         movY = y;
@@ -37,6 +38,18 @@ public:
         if (!wait) {
             posY += movY;
             posX += movX;
+            if (movX == 1) {
+                rotation = 0;
+            }
+            else if (movX == -1) {
+                rotation = 180;
+            }
+            else if (movY == 1) {
+                rotation = 90;
+            }
+            else if (movY == -1) {
+                rotation = 270;
+            }
         }
     }
 };
@@ -45,8 +58,10 @@ class Snake {
 public:
     std::vector <SnakeCell> pl;
     Snake() {
-        SnakeCell temp(11, 15, pl.size());
-        pl.push_back(temp);
+        SnakeCell head(11, 15, pl.size());
+        SnakeCell tail(11, 14, 0);
+        pl.push_back(head);
+        pl.push_back(tail);
     }
     void _setHeadMov() {
         for (int i = pl.size() - 1; i > 0; i--) {
@@ -72,7 +87,7 @@ public:
         for (int i = 0; i < pl.size(); i++) {
             pl[i]._changePos();
             if (pl[i].wait != 0) {
-                    pl[i].wait--;
+                pl[i].wait--;
             }
         }
     }
@@ -102,6 +117,7 @@ class GameHandler {
     enObj playSpace[24][32];
     Snake snake;
     Fruit fruit;
+    Texture2D map;
 public:
     GameHandler() : flag(EMenu) {
         for (int i = 0; i < 24; i++) {
@@ -118,8 +134,9 @@ public:
             playSpace[i][31] = EWall;
         }
     }
-    void _start(){
+    void _start() {
         InitWindow(SCREENW, SCREENH, "Snake");
+        map = LoadTexture("snakeAssets.png");
         SetTargetFPS(8);
         srand(time(0));
     }
@@ -160,26 +177,39 @@ public:
         }
         _playSpaceUpdt();
         snake._movSnake();
-        for (int i = 0; i < 24; i++) {
-            for (int j = 0; j < 32; j++) {
-                switch (playSpace[i][j]) {
-                    case ENone:
-                        break;
-                    case EWall:
-                        DrawRectangle(j * CELLSIZE, i * CELLSIZE, CELLSIZE, CELLSIZE, WHITE);
-                        break;
-                    case EPlayerHead:
-                        DrawRectangle(j * CELLSIZE, i * CELLSIZE, CELLSIZE, CELLSIZE, RED);
-                        break;
-                    case EPlayer:
-                        DrawRectangle(j * CELLSIZE, i * CELLSIZE, CELLSIZE, CELLSIZE, BLUE);
-                        break;
-                    case EFruit:
-                        DrawRectangle(j * CELLSIZE, i * CELLSIZE, CELLSIZE, CELLSIZE, ORANGE);
-                        break;
-                }
+        for (int i = 1; i < 23; i++) {
+            for (int j = 1; j < 31; j++) {
+                DrawTexturePro(map, { 40, 0, 40, 40 }, { (float)j * 40, (float)i * 40, 40, 40 }, { 0, 0 }, 0, WHITE);
             }
         }
+        DrawTexturePro(map, { 0, 40, 40, 40 }, {(float) fruit.posX * 40, (float)fruit.posY * 40, 40, 40 }, { 0, 0 }, 0, WHITE);
+        DrawTexturePro(map, { 40, 40, 40, 40 }, { (float) snake.pl[0].posX * 40 + 20, (float)snake.pl[0].posY * 40 + 20, 40, 40 }, { 20, 20 }, snake.pl[0].rotation, WHITE);
+        for (int i = 1; i < snake.pl.size() - 1; i++) {
+            if ((playSpace[snake.pl[i].posY + 1][snake.pl[i].posX] == EPlayer) && (playSpace[snake.pl[i].posY][snake.pl[i].posX - 1] == EPlayer)) {
+                DrawTexturePro(map, { 120, 0, 40, 40 }, { (float)snake.pl[i].posX * 40 + 20, (float)snake.pl[i].posY * 40 + 20, 40, 40 }, { 20, 20 }, 0, WHITE);
+            }
+            else if ((playSpace[snake.pl[i].posY - 1][snake.pl[i].posX] == EPlayer) && (playSpace[snake.pl[i].posY][snake.pl[i].posX - 1] == EPlayer)) {
+                DrawTexturePro(map, { 120, 0, 40, 40 }, { (float)snake.pl[i].posX * 40 + 20, (float)snake.pl[i].posY * 40 + 20, 40, 40 }, { 20, 20 }, 90, WHITE);
+            }
+            else if ((playSpace[snake.pl[i].posY][snake.pl[i].posX + 1] == EPlayer) && (playSpace[snake.pl[i].posY - 1][snake.pl[i].posX] == EPlayer))  {
+                DrawTexturePro(map, { 120, 0, 40, 40 }, { (float)snake.pl[i].posX * 40 + 20, (float)snake.pl[i].posY * 40 + 20, 40, 40 }, { 20, 20 }, 180, WHITE);
+            }
+            else if ((playSpace[snake.pl[i].posY + 1][snake.pl[i].posX] == EPlayer) &&(playSpace[snake.pl[i].posY][snake.pl[i].posX + 1] == EPlayer)) {
+                DrawTexturePro(map, { 120, 0, 40, 40 }, { (float)snake.pl[i].posX * 40 + 20, (float)snake.pl[i].posY * 40 + 20, 40, 40 }, { 20, 20 }, 270, WHITE);
+            }
+            else {
+                DrawTexturePro(map, { 80, 40, 40, 40 }, { (float)snake.pl[i].posX * 40 + 20, (float)snake.pl[i].posY * 40 + 20, 40, 40 }, { 20, 20 }, snake.pl[i].rotation, WHITE);
+            }
+        }
+        DrawTexturePro(map, { 80, 0, 40, 40 }, { (float)snake.pl.back().posX * 40 + 20, (float)snake.pl.back().posY * 40 + 20, 40, 40 }, { 20, 20 }, snake.pl[snake.pl.size() - 2].rotation, WHITE);
+        for (int i = 0; i < 24; i++) {
+            DrawTexturePro(map, { 0, 0, 40, 40 }, { 0, (float)i * 40, 40, 40 }, { 0, 0 }, 0, WHITE);
+            DrawTexturePro(map, { 0, 0, 40, 40 }, {1240, (float)i * 40, 40, 40 }, { 0, 0 }, 0, WHITE);
+        }
+        for (int i = 0; i < 32; i++) {
+            DrawTexturePro(map, { 0, 0, 40, 40 }, { (float) i * 40, 0, 40, 40 }, { 0, 0 }, 0, WHITE);
+            DrawTexturePro(map, { 0, 0, 40, 40 }, { (float)i * 40, 920, 40, 40 }, { 0, 0 }, 0, WHITE);
+        }    
     }
     void _playSpaceUpdt() {
         for (int i = 1; i < 23; i++) {
@@ -187,8 +217,7 @@ public:
                 playSpace[i][j] = ENone;
             }
         }
-        playSpace[snake.pl[0].posY][snake.pl[0].posX] = EPlayerHead;
-        for (int i = 1; i < snake.pl.size(); i++) {
+        for (int i = 0; i < snake.pl.size(); i++) {
             playSpace[snake.pl[i].posY][snake.pl[i].posX] = EPlayer;
         }
         playSpace[fruit.posY][fruit.posX] = EFruit;
