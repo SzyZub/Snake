@@ -25,10 +25,9 @@ class SnakeCell {
 public:
     int posY, posX, movY, movX, wait;
     float rotation;
-    SnakeCell(int y, int x, int w) : posY(y), posX(x), wait(w) {
+    SnakeCell(int y, int x, int w, int r) : posY(y), posX(x), wait(w), rotation(r) {
         movY = 0;
-        movX = 1;
-        rotation = 0;
+        movX = 0;
     }
     void _setMov(int y, int x) {
         movY = y;
@@ -38,18 +37,18 @@ public:
         if (!wait) {
             posY += movY;
             posX += movX;
-            if (movX == 1) {
-                rotation = 0;
-            }
-            else if (movX == -1) {
-                rotation = 180;
-            }
-            else if (movY == 1) {
-                rotation = 90;
-            }
-            else if (movY == -1) {
-                rotation = 270;
-            }
+        }
+        if (movX == 1) {
+            rotation = 0;
+        }
+        else if (movX == -1) {
+            rotation = 180;
+        }
+        else if (movY == 1) {
+            rotation = 90;
+        }
+        else if (movY == -1) {
+            rotation = 270;
         }
     }
 };
@@ -58,8 +57,10 @@ class Snake {
 public:
     std::vector <SnakeCell> pl;
     Snake() {
-        SnakeCell head(11, 15, pl.size());
-        SnakeCell tail(11, 14, 0);
+        SnakeCell head(11, 15, pl.size(), 0);
+        SnakeCell tail(11, 14, 0, 0);
+        head.movX = 1;
+        tail.movX = 1;
         pl.push_back(head);
         pl.push_back(tail);
     }
@@ -92,7 +93,7 @@ public:
         }
     }
     void _addCell(int y, int x) {
-        SnakeCell temp(y, x, pl.size());
+        SnakeCell temp(y, x, pl.size(), pl[pl.size() - 1].rotation);
         pl.push_back(temp);
     }
 };
@@ -184,24 +185,32 @@ public:
         }
         DrawTexturePro(map, { 0, 40, 40, 40 }, {(float) fruit.posX * 40, (float)fruit.posY * 40, 40, 40 }, { 0, 0 }, 0, WHITE);
         DrawTexturePro(map, { 40, 40, 40, 40 }, { (float) snake.pl[0].posX * 40 + 20, (float)snake.pl[0].posY * 40 + 20, 40, 40 }, { 20, 20 }, snake.pl[0].rotation, WHITE);
-        for (int i = 1; i < snake.pl.size() - 1; i++) {
-            if ((playSpace[snake.pl[i].posY + 1][snake.pl[i].posX] == EPlayer) && (playSpace[snake.pl[i].posY][snake.pl[i].posX - 1] == EPlayer)) {
-                DrawTexturePro(map, { 120, 0, 40, 40 }, { (float)snake.pl[i].posX * 40 + 20, (float)snake.pl[i].posY * 40 + 20, 40, 40 }, { 20, 20 }, 0, WHITE);
+        int x;
+        for (x = 1; (x < snake.pl.size() - 1) && (snake.pl[x + 1].wait == 0); x++) {
+            if ((snake.pl[x - 1].posX + 1 == snake.pl[x].posX) && (snake.pl[x + 1].posY - 1 == snake.pl[x].posY) ||
+                (snake.pl[x + 1].posX + 1 == snake.pl[x].posX) && (snake.pl[x - 1].posY - 1 == snake.pl[x].posY)) 
+            {
+                DrawTexturePro(map, { 120, 0, 40, 40 }, { (float)snake.pl[x].posX * 40 + 20, (float)snake.pl[x].posY * 40 + 20, 40, 40 }, { 20, 20 }, 0, WHITE);
+            } else if ((snake.pl[x - 1].posY + 1 == snake.pl[x].posY) && (snake.pl[x + 1].posX + 1 == snake.pl[x].posX) ||
+                (snake.pl[x + 1].posY + 1 == snake.pl[x].posY) && (snake.pl[x - 1].posX + 1 == snake.pl[x].posX)) 
+            {
+                DrawTexturePro(map, { 120, 0, 40, 40 }, { (float)snake.pl[x].posX * 40 + 20, (float)snake.pl[x].posY * 40 + 20, 40, 40 }, { 20, 20 }, 90, WHITE);
             }
-            else if ((playSpace[snake.pl[i].posY - 1][snake.pl[i].posX] == EPlayer) && (playSpace[snake.pl[i].posY][snake.pl[i].posX - 1] == EPlayer)) {
-                DrawTexturePro(map, { 120, 0, 40, 40 }, { (float)snake.pl[i].posX * 40 + 20, (float)snake.pl[i].posY * 40 + 20, 40, 40 }, { 20, 20 }, 90, WHITE);
+            else if ((snake.pl[x - 1].posX - 1 == snake.pl[x].posX) && (snake.pl[x + 1].posY + 1 == snake.pl[x].posY) ||
+                (snake.pl[x + 1].posX - 1 == snake.pl[x].posX) && (snake.pl[x - 1].posY + 1 == snake.pl[x].posY)) 
+            {
+                DrawTexturePro(map, { 120, 0, 40, 40 }, { (float)snake.pl[x].posX * 40 + 20, (float)snake.pl[x].posY * 40 + 20, 40, 40 }, { 20, 20 }, 180, WHITE);
             }
-            else if ((playSpace[snake.pl[i].posY][snake.pl[i].posX + 1] == EPlayer) && (playSpace[snake.pl[i].posY - 1][snake.pl[i].posX] == EPlayer))  {
-                DrawTexturePro(map, { 120, 0, 40, 40 }, { (float)snake.pl[i].posX * 40 + 20, (float)snake.pl[i].posY * 40 + 20, 40, 40 }, { 20, 20 }, 180, WHITE);
-            }
-            else if ((playSpace[snake.pl[i].posY + 1][snake.pl[i].posX] == EPlayer) &&(playSpace[snake.pl[i].posY][snake.pl[i].posX + 1] == EPlayer)) {
-                DrawTexturePro(map, { 120, 0, 40, 40 }, { (float)snake.pl[i].posX * 40 + 20, (float)snake.pl[i].posY * 40 + 20, 40, 40 }, { 20, 20 }, 270, WHITE);
+            else if ((snake.pl[x - 1].posY - 1 == snake.pl[x].posY) && (snake.pl[x + 1].posX - 1 == snake.pl[x].posX) ||
+                (snake.pl[x + 1].posY - 1 == snake.pl[x].posY) && (snake.pl[x - 1].posX - 1 == snake.pl[x].posX))
+            {
+                DrawTexturePro(map, { 120, 0, 40, 40 }, { (float)snake.pl[x].posX * 40 + 20, (float)snake.pl[x].posY * 40 + 20, 40, 40 }, { 20, 20 }, 270, WHITE);
             }
             else {
-                DrawTexturePro(map, { 80, 40, 40, 40 }, { (float)snake.pl[i].posX * 40 + 20, (float)snake.pl[i].posY * 40 + 20, 40, 40 }, { 20, 20 }, snake.pl[i].rotation, WHITE);
+                DrawTexturePro(map, { 80, 40, 40, 40 }, { (float)snake.pl[x].posX * 40 + 20, (float)snake.pl[x].posY * 40 + 20, 40, 40 }, { 20, 20 }, snake.pl[x].rotation, WHITE);
             }
         }
-        DrawTexturePro(map, { 80, 0, 40, 40 }, { (float)snake.pl.back().posX * 40 + 20, (float)snake.pl.back().posY * 40 + 20, 40, 40 }, { 20, 20 }, snake.pl[snake.pl.size() - 2].rotation, WHITE);
+        DrawTexturePro(map, {80, 0, 40, 40}, {(float)snake.pl[x].posX * 40 + 20, (float)snake.pl[x].posY * 40 + 20, 40, 40}, {20, 20}, snake.pl[x - 1].rotation, WHITE);
         for (int i = 0; i < 24; i++) {
             DrawTexturePro(map, { 0, 0, 40, 40 }, { 0, (float)i * 40, 40, 40 }, { 0, 0 }, 0, WHITE);
             DrawTexturePro(map, { 0, 0, 40, 40 }, {1240, (float)i * 40, 40, 40 }, { 0, 0 }, 0, WHITE);
@@ -218,7 +227,7 @@ public:
             }
         }
         for (int i = 0; i < snake.pl.size(); i++) {
-            playSpace[snake.pl[i].posY][snake.pl[i].posX] = EPlayer;
+            if (!snake.pl[i].wait) playSpace[snake.pl[i].posY][snake.pl[i].posX] = EPlayer;
         }
         playSpace[fruit.posY][fruit.posX] = EFruit;
     }
@@ -234,7 +243,7 @@ public:
     }
     void _over() {
         DrawText("Your score is:", (SCREENW - MeasureText("Your score is:", FBIGSIZE)) / 2, SCREENH / 2 - FBIGSIZE, FBIGSIZE, WHITE);
-        DrawText(TextFormat("%d", snake.pl.size() - 1), (SCREENW - MeasureText(TextFormat("%d", snake.pl.size() - 1), FBIGSIZE)) / 2, SCREENH / 2, FBIGSIZE, WHITE);
+        DrawText(TextFormat("%d", snake.pl.size() - 2), (SCREENW - MeasureText(TextFormat("%d", snake.pl.size() - 2), FBIGSIZE)) / 2, SCREENH / 2, FBIGSIZE, WHITE);
         if (GetKeyPressed() == KEY_SPACE) {
             flag = EMenu;
         }
