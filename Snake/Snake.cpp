@@ -119,6 +119,8 @@ class GameHandler {
     Snake snake;
     Fruit fruit;
     Texture2D map;
+    int soundEnable;
+    Sound over, apple;
 public:
     GameHandler() : flag(EMenu) {
         for (int i = 0; i < 24; i++) {
@@ -134,16 +136,23 @@ public:
             playSpace[i][0] = EWall;
             playSpace[i][31] = EWall;
         }
+        soundEnable = 1;
     }
     void _start() {
         InitWindow(SCREENW, SCREENH, "Snake");
         map = LoadTexture("snakeAssets.png");
         SetTargetFPS(8);
+        InitAudioDevice();
+        apple = LoadSound("Apple.wav");
+        over = LoadSound("Over.wav");
         srand(time(0));
     }
     void _mainLoop() {
         while (!WindowShouldClose())
         {
+            if (IsKeyPressed(KEY_M)) {
+                soundEnable = 1 - soundEnable;
+            }
             BeginDrawing();
             ClearBackground(BLACK);
             switch (flag) {
@@ -162,6 +171,7 @@ public:
     }
     void _menu() {
         DrawText("Press space to start playing", (SCREENW - MeasureText("Press space to start playing", FBIGSIZE)) / 2, (SCREENH - FBIGSIZE) / 2, FBIGSIZE, WHITE);
+        DrawText("You can press M to mute/unmute when playing", (SCREENW - MeasureText("You can press M to mute/unmute when playing", FBIGSIZE)) / 2, SCREENH / 5 * 4, FBIGSIZE, WHITE);
         if (IsKeyPressed(KEY_SPACE)) {
             Snake temp;
             snake = temp;
@@ -174,6 +184,9 @@ public:
         snake._setHeadMov();
         if (_checkCol()) {
             flag = EOver;
+            if (soundEnable) {
+                PlaySound(over);
+            }
             return;
         }
         _playSpaceUpdt();
@@ -235,6 +248,9 @@ public:
         int x = snake.pl[0].posX;
         int y = snake.pl[0].posY;
         if (playSpace[y][x] == EFruit) {
+            if (soundEnable) {
+                PlaySound(apple);
+            }
             snake._addCell(fruit.posY, fruit.posX);
             fruit._randPos(playSpace);
         }
